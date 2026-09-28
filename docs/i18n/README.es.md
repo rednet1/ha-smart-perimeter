@@ -54,7 +54,7 @@ Puedes hacerlo, y para lo básico (puerta/sirena) probablemente deberías reutil
 | `auto_arm_away.yaml` | automatización | Arma automáticamente cuando los rastreadores de presencia muestran que todos están fuera |
 | `pet_false_alarm_guard.yaml` | automatización | Se autocorrige ante una falsa alarma causada por la mascota, y siempre te notifica |
 
-Consulta [`docs/hardware.md`](../hardware.es.md) para notas sobre qué hardware importa de verdad (cámaras/GPU, dispositivo de autenticación, sirena, satélites de voz, VPN para presencia fiable fuera de casa).
+Consulta [`docs/hardware.md`](hardware.es.md) para notas sobre qué hardware importa de verdad (cámaras/GPU, dispositivo de autenticación, sirena, satélites de voz, VPN para presencia fiable fuera de casa).
 
 ## Requisitos previos
 

@@ -54,7 +54,7 @@ Puoi farlo, e per le basi (porta/sirena) probabilmente dovresti riusare quello c
 | `auto_arm_away.yaml` | automazione | Arma automaticamente quando i tracker di presenza mostrano tutti fuori casa |
 | `pet_false_alarm_guard.yaml` | automazione | Si autocorregge in caso di falso allarme causato dall'animale, e ti avvisa sempre |
 
-Vedi [`docs/hardware.md`](../hardware.it.md) per note su quale hardware conta davvero (telecamere/GPU, dispositivo di autenticazione, sirena, satelliti vocali, VPN per una presenza affidabile fuori casa).
+Vedi [`docs/hardware.md`](hardware.it.md) per note su quale hardware conta davvero (telecamere/GPU, dispositivo di autenticazione, sirena, satelliti vocali, VPN per una presenza affidabile fuori casa).
 
 ## Prerequisiti
 

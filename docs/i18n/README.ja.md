@@ -54,7 +54,7 @@
 | `auto_arm_away.yaml` | automation | 在宅トラッカーが全員外出中と示したら自動でアームする |
 | `pet_false_alarm_guard.yaml` | automation | ペットが原因の誤報を自動修正し、必ず通知する |
 
-実際に重要なハードウェア(カメラ/GPU、認証デバイス、サイレン、音声サテライト、外出先での確実な在宅検知のためのVPN)については [`docs/hardware.md`](../hardware.ja.md) を参照してください。
+実際に重要なハードウェア(カメラ/GPU、認証デバイス、サイレン、音声サテライト、外出先での確実な在宅検知のためのVPN)については [`docs/hardware.md`](hardware.ja.md) を参照してください。
 
 ## 前提条件
 
