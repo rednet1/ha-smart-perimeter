@@ -54,6 +54,8 @@ Puoi farlo, e per le basi (porta/sirena) probabilmente dovresti riusare quello c
 | `auto_arm_away.yaml` | automazione | Arma automaticamente quando i tracker di presenza mostrano tutti fuori casa |
 | `pet_false_alarm_guard.yaml` | automazione | Si autocorregge in caso di falso allarme causato dall'animale, e ti avvisa sempre |
 
+Vedi [`docs/hardware.md`](../hardware.it.md) per note su quale hardware conta davvero (telecamere/GPU, dispositivo di autenticazione, sirena, satelliti vocali, VPN per una presenza affidabile fuori casa).
+
 ## Prerequisiti
 
 - Un modo per autenticare le persone con un ID numerico per persona (un lettore di impronte digitali Zigbee/Tuya che espone un `sensor.*` con l'ID corrispondente è l'implementazione di riferimento usata per costruire questo progetto; un tastierino con codici mappati a numeri, o un lettore NFC, funzionerebbero allo stesso modo).

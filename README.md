@@ -73,6 +73,10 @@ the pet features get triggered.
 | `auto_arm_away.yaml` | automation | Arms automatically once presence trackers show everyone away |
 | `pet_false_alarm_guard.yaml` | automation | Self-corrects a false alarm caused by the pet, and always notifies you |
 
+See [`docs/hardware.md`](docs/hardware.md) for notes on what hardware
+actually matters (cameras/GPU, authentication device, siren, voice
+satellites, VPN for reliable away-from-home presence).
+
 ## Prerequisites
 
 - A way to authenticate people with a numeric ID per person (a Zigbee/Tuya

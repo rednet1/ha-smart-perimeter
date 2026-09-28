@@ -54,6 +54,8 @@ Puedes hacerlo, y para lo básico (puerta/sirena) probablemente deberías reutil
 | `auto_arm_away.yaml` | automatización | Arma automáticamente cuando los rastreadores de presencia muestran que todos están fuera |
 | `pet_false_alarm_guard.yaml` | automatización | Se autocorrige ante una falsa alarma causada por la mascota, y siempre te notifica |
 
+Consulta [`docs/hardware.md`](../hardware.es.md) para notas sobre qué hardware importa de verdad (cámaras/GPU, dispositivo de autenticación, sirena, satélites de voz, VPN para presencia fiable fuera de casa).
+
 ## Requisitos previos
 
 - Una forma de autenticar personas con un ID numérico por persona (un lector de huellas Zigbee/Tuya que expone un `sensor.*` con el ID coincidente es la implementación de referencia con la que se construyó esto; un teclado con códigos mapeados a números, o un lector NFC, funcionarían igual).
