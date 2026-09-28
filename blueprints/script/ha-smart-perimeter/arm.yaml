@@ -1,0 +1,228 @@
+blueprint:
+  name: Smart Perimeter — Arm
+  description: >
+    Arms a perimeter/alarm system. If a mode is not explicitly passed in, it
+    decides on its own between "Full" (all sensors, including motion) and
+    "Partial" (doors/windows only) by checking whether a pet was recently
+    seen by any camera object-detection sensor (e.g. Frigate's "dog" object
+    tracking) — the idea being: a pet left alone at home shouldn't be able to
+    trigger interior motion sensors and cause a false alarm.
+
+    Call this script with fields `person` (who is arming, free text, used
+    only for messages/notifications) and optionally `mode` ("Full" or
+    "Partial") to force a specific mode instead of auto-detecting.
+  domain: script
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/script/ha-smart-perimeter/arm.yaml
+  input:
+    armed_helper:
+      name: "Armed state helper"
+      description: >
+        An input_boolean (or any boolean-like entity you can turn on/off)
+        that represents "system is armed". This is the single source of
+        truth other automations should read.
+      selector:
+        entity:
+          domain: input_boolean
+    partial_mode_flag:
+      name: "Partial mode flag"
+      description: >
+        A boolean-like entity used as ON/OFF flag for "Partial mode active".
+        Can be a second input_boolean, OR — if your Home Assistant instance
+        does not let you create new helpers via automation tooling — any
+        automation entity you don't otherwise need, reused purely for its
+        on/off state (turn_on/turn_off it like a switch, never let it
+        actually run). See the README for why this workaround exists.
+      selector:
+        entity:
+      default: ""
+    siren:
+      name: "Siren switch"
+      selector:
+        entity:
+          domain: switch
+    confirmation_beep:
+      name: "Confirmation beep"
+      description: Briefly pulse the siren on arm as an audible confirmation.
+      selector:
+        boolean: {}
+      default: true
+    led_indicator:
+      name: "LED / visual indicator (optional)"
+      description: A light entity to flash/turn on as a visual "armed" indicator.
+      selector:
+        entity:
+          domain: light
+      default: ""
+    exit_delay_seconds:
+      name: "Exit delay (seconds)"
+      description: >
+        Grace period between arming and enabling the perimeter-trigger
+        automation(s), so you have time to actually leave without setting
+        off your own alarm.
+      selector:
+        number:
+          min: 0
+          max: 300
+          unit_of_measurement: seconds
+      default: 10
+    automations_to_enable:
+      name: "Automations to enable once armed"
+      description: >
+        The perimeter-trigger automation, the rearm automation, and any
+        other supporting automations (door-open notifier, pet-bark
+        notifier, etc.) that should only run while armed.
+      selector:
+        entity:
+          domain: automation
+          multiple: true
+    dog_occupancy_sensors:
+      name: "Pet-occupancy sensors (optional)"
+      description: >
+        Binary sensors that are ON when a pet is detected by a camera
+        (e.g. Frigate's per-camera "<camera>_dog_occupancy" sensor, if you
+        track "dog" as an object class). Leave empty to disable
+        pet-aware mode selection entirely (system will always arm Full
+        unless you pass mode explicitly).
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
+      default: []
+    dog_presence_window_minutes:
+      name: "Pet 'recently seen' window (minutes)"
+      description: >
+        A pet is considered "probably still home" if any pet-occupancy
+        sensor turned on, OR turned off less than this many minutes ago.
+        This is deliberately NOT an instantaneous check: a pet can easily
+        be out of camera frame for a minute or two while still being home,
+        and an instantaneous check will get this wrong. Widen this if your
+        camera coverage is patchy relative to where the pet can roam.
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: minutes
+      default: 15
+    extra_arm_actions:
+      name: "Extra actions on arm (optional)"
+      description: >
+        Any additional actions to run once armed, e.g. closing a specific
+        cover/blind, arming a glass-break sensor, etc.
+      selector:
+        action: {}
+      default: []
+    notify_action:
+      name: "Notification action"
+      description: >
+        Action(s) to run to notify you that the system armed. Runs with
+        access to the `person` and `mode_chosen` variables via templates,
+        e.g. `{{ person }}` / `{{ mode_chosen }}`.
+      selector:
+        action: {}
+      default: []
+    announce_action:
+      name: "Voice announcement action (optional)"
+      description: >
+        Action(s) for a spoken announcement (e.g. assist_satellite.announce
+        to your voice speakers, or a TTS service call). Also has access to
+        `person` and `mode_chosen`.
+      selector:
+        action: {}
+      default: []
+
+mode: single
+
+fields:
+  person:
+    name: Person
+    description: Free text, who/what is arming the system (for messages only).
+    required: false
+    selector:
+      text: {}
+  mode:
+    name: Mode (optional)
+    description: Force "Full" or "Partial" instead of auto-detecting from pet sensors.
+    required: false
+    selector:
+      select:
+        options:
+          - Full
+          - Partial
+
+sequence:
+  - if:
+      - condition: state
+        entity_id: !input armed_helper
+        state: "on"
+    then:
+      - stop: "already armed, nothing to do"
+
+  - variables:
+      who: "{{ person | default('automatic', true) }}"
+      dog_sensors: !input dog_occupancy_sensors
+      window_seconds: "{{ (!input dog_presence_window_minutes) * 60 }}"
+      pet_present: >
+        {% set ns = namespace(found=false) %}
+        {% for s in dog_sensors %}
+          {% if is_state(s, 'on') or ((as_timestamp(now()) - as_timestamp(states[s].last_changed)) < window_seconds) %}
+            {% set ns.found = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.found }}
+      mode_chosen: "{{ mode if mode in ['Full','Partial'] else ('Partial' if pet_present else 'Full') }}"
+
+  # homeassistant.turn_on/turn_off work generically across domains, so this
+  # is agnostic to whether partial_mode_flag is a real input_boolean or a
+  # repurposed automation used as a flag (see the input description above).
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ mode_chosen == 'Partial' }}"
+        sequence:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: !input partial_mode_flag
+    default:
+      - action: homeassistant.turn_off
+        target:
+          entity_id: !input partial_mode_flag
+
+  - action: homeassistant.turn_on
+    target:
+      entity_id: !input armed_helper
+
+  - if:
+      - condition: template
+        value_template: "{{ (!input led_indicator) != '' }}"
+    then:
+      - action: light.turn_on
+        target:
+          entity_id: !input led_indicator
+        data:
+          brightness_pct: 100
+
+  - if:
+      - condition: template
+        value_template: "{{ !input confirmation_beep }}"
+    then:
+      - action: switch.turn_on
+        target:
+          entity_id: !input siren
+      - delay:
+          milliseconds: 300
+      - action: switch.turn_off
+        target:
+          entity_id: !input siren
+
+  - delay:
+      seconds: !input exit_delay_seconds
+
+  - action: automation.turn_on
+    target:
+      entity_id: !input automations_to_enable
+
+  - action: !input extra_arm_actions
+
+  - action: !input notify_action
+
+  - action: !input announce_action

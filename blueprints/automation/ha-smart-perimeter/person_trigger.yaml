@@ -1,0 +1,88 @@
+blueprint:
+  name: Smart Perimeter — Person Trigger (fingerprint / keypad / NFC)
+  description: >
+    Toggles arm/disarm from any sensor that reports a numeric ID for "who
+    just authenticated" — a fingerprint reader, a keypad with per-person
+    codes mapped to numbers, an NFC tag reader, etc. Instantiate this
+    blueprint ONCE PER PERSON (one automation per authorized ID) rather
+    than trying to cram a whole ID→name table into one automation — it
+    keeps each automation trivial to read and to add/remove people later.
+
+    Requires the "Smart Perimeter — Arm" and "Smart Perimeter — Disarm"
+    script blueprints to be set up first.
+  domain: automation
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/automation/ha-smart-perimeter/person_trigger.yaml
+  input:
+    id_sensor:
+      name: "ID sensor"
+      description: The numeric-state sensor that reports the authenticated ID.
+      selector:
+        entity:
+          domain: sensor
+    person_id:
+      name: "This person's ID"
+      description: The numeric ID that identifies this person on the sensor above.
+      selector:
+        number:
+          min: 0
+          max: 999
+          mode: box
+    person_name:
+      name: "Person name"
+      description: Used only for messages/announcements.
+      selector:
+        text: {}
+    armed_helper:
+      name: "Armed state helper"
+      description: Same entity configured in the Arm/Disarm script blueprints.
+      selector:
+        entity:
+          domain: input_boolean
+    arm_script:
+      name: "Arm script"
+      description: The script instance created from the "Smart Perimeter — Arm" blueprint.
+      selector:
+        entity:
+          domain: script
+    disarm_script:
+      name: "Disarm script"
+      description: The script instance created from the "Smart Perimeter — Disarm" blueprint.
+      selector:
+        entity:
+          domain: script
+
+trigger:
+  - trigger: numeric_state
+    entity_id: !input id_sensor
+    above: 0
+
+condition:
+  - condition: template
+    value_template: "{{ (trigger.to_state.state | int(0)) == (!input person_id) }}"
+
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input armed_helper
+            state: "off"
+        sequence:
+          - action: script.turn_on
+            target:
+              entity_id: !input arm_script
+            data:
+              variables:
+                person: !input person_name
+      - conditions:
+          - condition: state
+            entity_id: !input armed_helper
+            state: "on"
+        sequence:
+          - action: script.turn_on
+            target:
+              entity_id: !input disarm_script
+            data:
+              variables:
+                person: !input person_name
+
+mode: single

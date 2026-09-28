@@ -1,0 +1,74 @@
+blueprint:
+  name: Smart Perimeter — Auto-arm when everyone leaves
+  description: >
+    Arms automatically once presence trackers show nobody home for a
+    sustained period.
+
+    IMPORTANT lesson learned the hard way: base this on **phone/person
+    presence** (`person.*` / `device_tracker.*`), NOT on "no one visible on
+    camera" — camera coverage is never the whole house, and someone simply
+    standing in an uncovered room will read as "away" and the system will
+    arm around them, motion sensors and all. This blueprint is written
+    assuming presence entities as input specifically to avoid that mistake;
+    don't repurpose it with occupancy/camera sensors as the trackers input.
+
+    If your presence tracking is unreliable when you leave your home
+    Wi-Fi (a common issue: the companion app can't reach your Home
+    Assistant instance from outside your LAN), fix that first — e.g. with
+    a WireGuard VPN back into your home network, or a remote-access
+    solution — otherwise this automation will simply never trigger, or
+    will trigger on stale/incorrect data.
+  domain: automation
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/automation/ha-smart-perimeter/auto_arm_away.yaml
+  input:
+    presence_trackers:
+      name: "Presence trackers"
+      description: person.* or device_tracker.* entities for everyone who lives here.
+      selector:
+        entity:
+          multiple: true
+    away_duration_minutes:
+      name: "Sustained 'away' duration (minutes)"
+      description: How long everyone must show as away before arming.
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: minutes
+      default: 5
+    armed_helper:
+      name: "Armed state helper"
+      selector:
+        entity:
+          domain: input_boolean
+    arm_script:
+      name: "Arm script"
+      description: >
+        The script instance created from the "Smart Perimeter — Arm"
+        blueprint. Mode is left to auto-detect (don't pass it here) so the
+        pet-aware logic in the Arm script decides Full vs. Partial.
+      selector:
+        entity:
+          domain: script
+
+trigger:
+  - trigger: template
+    value_template: >
+      {{ expand(!input presence_trackers) | selectattr('state', 'in', ['home', 'on']) | list | count == 0 }}
+    for:
+      minutes: !input away_duration_minutes
+
+condition:
+  - condition: state
+    entity_id: !input armed_helper
+    state: "off"
+
+action:
+  - action: script.turn_on
+    target:
+      entity_id: !input arm_script
+    data:
+      variables:
+        person: "automatic (everyone away)"
+
+mode: single

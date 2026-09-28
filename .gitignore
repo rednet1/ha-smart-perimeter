@@ -1,0 +1,15 @@
+# Secrets — never commit real Home Assistant credentials/tokens/URLs
+secrets.yaml
+*.token
+*.tok
+.env
+
+# OS/editor cruft
+.DS_Store
+*.swp
+__pycache__/
+*.pyc
+
+# Local scratch
+/scratch/
+/tmp/

@@ -1,0 +1,86 @@
+blueprint:
+  name: Smart Perimeter — Trigger (siren on breach)
+  description: >
+    Sounds the siren when a door/window or motion sensor trips. Motion
+    sensors are ignored while "Partial mode" is active (e.g. a pet is
+    home alone) — only door/window sensors can trigger the siren in that
+    case. This automation is meant to be enabled/disabled by the Arm/Disarm
+    scripts, not run all the time.
+  domain: automation
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/automation/ha-smart-perimeter/perimeter_trigger.yaml
+  input:
+    motion_sensors:
+      name: "Motion sensors"
+      description: Interior motion sensors — ignored while Partial mode is active.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+          multiple: true
+      default: []
+    door_window_sensors:
+      name: "Door / window sensors"
+      description: Always trigger the siren, regardless of mode.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class:
+            - door
+            - window
+            - opening
+          multiple: true
+      default: []
+    partial_mode_flag:
+      name: "Partial mode flag"
+      description: Same entity used by the Arm/Disarm scripts.
+      selector:
+        entity:
+    entry_delay_seconds:
+      name: "Entry delay (seconds)"
+      description: >
+        Grace period between a sensor tripping and the siren actually
+        sounding, so a disarm (e.g. your own fingerprint at the door) can
+        cancel it in time.
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: seconds
+      default: 7
+    siren_actions:
+      name: "Siren-on actions"
+      description: >
+        Actions to actually sound the alert — turning on the siren switch,
+        any secondary sirens, closing a cover for deterrence, etc.
+      selector:
+        action: {}
+    notify_action:
+      name: "Notification action"
+      description: >
+        Runs with access to `trigger` (the automation trigger object), so
+        you can reference `{{ trigger.to_state.name }}` for which sensor fired.
+      selector:
+        action: {}
+      default: []
+
+trigger:
+  - id: motion
+    trigger: state
+    entity_id: !input motion_sensors
+    to: "on"
+  - id: door
+    trigger: state
+    entity_id: !input door_window_sensors
+    to: "on"
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.id == 'door' or not is_state((!input partial_mode_flag), 'on') }}"
+
+action:
+  - delay:
+      seconds: !input entry_delay_seconds
+  - action: !input siren_actions
+  - action: !input notify_action
+
+mode: single

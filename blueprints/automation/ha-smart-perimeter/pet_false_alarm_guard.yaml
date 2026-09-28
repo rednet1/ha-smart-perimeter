@@ -1,0 +1,72 @@
+blueprint:
+  name: Smart Perimeter — Pet False-Alarm Guard
+  description: >
+    Safety net for the case the Arm script's pet check got it wrong (e.g.
+    it armed Full because the pet wasn't seen recently enough, but the pet
+    was actually home and just triggered a motion sensor): if the siren
+    starts sounding while in Full mode, and a pet is detected RIGHT NOW by
+    a camera, silence the siren and switch to Partial mode automatically.
+
+    This uses an instantaneous check on purpose (unlike the Arm script's
+    time-window check) — here we specifically want to know "is this
+    happening because of the pet right now", not "was the pet seen
+    recently". ALWAYS notifies you when this fires, since silencing a real
+    alarm automatically is a meaningful thing to do silently — you want to
+    be able to double-check camera footage if you have any doubt.
+  domain: automation
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/automation/ha-smart-perimeter/pet_false_alarm_guard.yaml
+  input:
+    siren:
+      name: "Siren switch"
+      selector:
+        entity:
+          domain: switch
+    armed_helper:
+      name: "Armed state helper"
+      selector:
+        entity:
+          domain: input_boolean
+    partial_mode_flag:
+      name: "Partial mode flag"
+      selector:
+        entity:
+    dog_occupancy_sensors:
+      name: "Pet-occupancy sensors"
+      description: Same sensors used by the Arm script, checked instantaneously here.
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
+    notify_action:
+      name: "Notification action (always runs when this fires)"
+      selector:
+        action: {}
+
+trigger:
+  - trigger: state
+    entity_id: !input siren
+    to: "on"
+
+condition:
+  - condition: state
+    entity_id: !input armed_helper
+    state: "on"
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: !input partial_mode_flag
+        state: "on"
+  - condition: template
+    value_template: >
+      {{ expand(!input dog_occupancy_sensors) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+
+action:
+  - action: switch.turn_off
+    target:
+      entity_id: !input siren
+  - action: homeassistant.turn_on
+    target:
+      entity_id: !input partial_mode_flag
+  - action: !input notify_action
+
+mode: single

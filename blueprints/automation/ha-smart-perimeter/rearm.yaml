@@ -1,0 +1,50 @@
+blueprint:
+  name: Smart Perimeter — Rearm (auto-clear)
+  description: >
+    When all the sensors that can trigger the siren return to their resting
+    state, silences the siren and runs any cleanup actions (re-opening
+    covers, turning off a strobe light, etc). Enable/disable this together
+    with the trigger automation via the Arm/Disarm scripts.
+  domain: automation
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/automation/ha-smart-perimeter/rearm.yaml
+  input:
+    motion_sensors:
+      name: "Motion sensors"
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+          multiple: true
+      default: []
+    door_window_sensors:
+      name: "Door / window sensors"
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class:
+            - door
+            - window
+            - opening
+          multiple: true
+      default: []
+    clear_actions:
+      name: "Clear actions"
+      description: >
+        Actions to run once everything is back to resting state — turning
+        off the siren switch, any secondary sirens, undoing anything the
+        trigger automation did.
+      selector:
+        action: {}
+
+trigger:
+  - trigger: state
+    entity_id: !input motion_sensors
+    to: "off"
+  - trigger: state
+    entity_id: !input door_window_sensors
+    to: "off"
+
+action:
+  - action: !input clear_actions
+
+mode: single

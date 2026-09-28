@@ -1,0 +1,127 @@
+blueprint:
+  name: Smart Perimeter — Disarm
+  description: >
+    Disarms a perimeter/alarm system armed by the companion "Smart Perimeter
+    — Arm" script blueprint. Silences the siren, turns off the supporting
+    automations, and (optionally) undoes anything the siren-trigger
+    automation did (e.g. re-opening a cover it closed) if it was actually
+    sounding when disarmed.
+  domain: script
+  source_url: https://github.com/REPLACE_ME/ha-smart-perimeter/blob/main/blueprints/script/ha-smart-perimeter/disarm.yaml
+  input:
+    armed_helper:
+      name: "Armed state helper"
+      description: Same entity used by the Arm script.
+      selector:
+        entity:
+          domain: input_boolean
+    partial_mode_flag:
+      name: "Partial mode flag"
+      description: Same entity used by the Arm script.
+      selector:
+        entity:
+    siren:
+      name: "Siren switch"
+      selector:
+        entity:
+          domain: switch
+    led_indicator:
+      name: "LED / visual indicator (optional)"
+      selector:
+        entity:
+          domain: light
+      default: ""
+    automations_to_disable:
+      name: "Automations to disable on disarm"
+      description: >
+        Same list passed to the Arm script's `automations_to_enable`, plus
+        the partial_mode_flag if it's an automation-based flag (safe to
+        include it here too even if it's an input_boolean — extra entries
+        of the wrong domain are simply ignored by homeassistant.turn_off).
+      selector:
+        entity:
+          domain: automation
+          multiple: true
+    undo_actions:
+      name: "Undo actions if the siren was sounding (optional)"
+      description: >
+        Actions to run ONLY if the siren was actually on at disarm time,
+        e.g. re-opening covers that the perimeter-trigger automation closed,
+        turning off a strobe light, etc.
+      selector:
+        action: {}
+      default: []
+    extra_disarm_actions:
+      name: "Extra actions on disarm (optional)"
+      description: Actions to run every time, regardless of whether the siren was sounding.
+      selector:
+        action: {}
+      default: []
+    notify_action:
+      name: "Notification action"
+      description: >
+        Action(s) to run to notify you the system disarmed. Has access to
+        the `person` variable via templates, e.g. `{{ person }}`.
+      selector:
+        action: {}
+      default: []
+    announce_action:
+      name: "Voice announcement action (optional)"
+      selector:
+        action: {}
+      default: []
+
+mode: single
+
+fields:
+  person:
+    name: Person
+    description: Free text, who/what is disarming the system (for messages only).
+    required: false
+    selector:
+      text: {}
+
+sequence:
+  - if:
+      - condition: state
+        entity_id: !input armed_helper
+        state: "off"
+    then:
+      - stop: "already disarmed, nothing to do"
+
+  - variables:
+      who: "{{ person | default('automatic', true) }}"
+      was_sounding: "{{ is_state((!input siren), 'on') }}"
+
+  - action: homeassistant.turn_off
+    target:
+      entity_id: !input armed_helper
+
+  - if:
+      - condition: template
+        value_template: "{{ (!input led_indicator) != '' }}"
+    then:
+      - action: light.turn_off
+        target:
+          entity_id: !input led_indicator
+
+  - action: homeassistant.turn_off
+    target:
+      entity_id: !input automations_to_disable
+    data:
+      stop_actions: true
+
+  - action: switch.turn_off
+    target:
+      entity_id: !input siren
+
+  - if:
+      - condition: template
+        value_template: "{{ was_sounding }}"
+    then: !input undo_actions
+
+  - action: !input extra_disarm_actions
+
+  - action: !input notify_action
+
+  - action: !input announce_action
