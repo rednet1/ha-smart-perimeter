@@ -1,3 +1,5 @@
+[English](README.md) | [Italiano](docs/i18n/README.it.md) | [Español](docs/i18n/README.es.md) | [日本語](docs/i18n/README.ja.md)
+
 # Smart Perimeter
 
 A Home Assistant alarm/perimeter system built from blueprints, with two

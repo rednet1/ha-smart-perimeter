@@ -1,3 +1,5 @@
+[English](entities.md) | [Italiano](i18n/entities.it.md) | [Español](i18n/entities.es.md) | [日本語](i18n/entities.ja.md)
+
 # Setup worksheet
 
 Fill this in with your own entities before importing the blueprints — it's
